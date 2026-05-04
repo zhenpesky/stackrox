@@ -54,7 +54,7 @@ const MOCK_AUTH_STATUS = {
                 VulnerabilityManagementApprovals: 'READ_WRITE_ACCESS',
                 VulnerabilityManagementRequests: 'READ_WRITE_ACCESS',
                 VulnerabilityReports: 'READ_WRITE_ACCESS',
-                WorkflowAdministration: 'READ_ACCESS',
+                WorkflowAdministration: 'READ_WRITE_ACCESS',
                 Administration: 'READ_ACCESS',
                 Access: 'READ_ACCESS',
                 Compliance: 'READ_ACCESS',
@@ -210,6 +210,25 @@ const graphqlHandler = http.post('/api/graphql', async ({ request }) => {
                 },
             });
 
+        case 'workloadScopeWizardCentral':
+            return HttpResponse.json({
+                data: {
+                    clusters: [
+                        { id: 'cluster-1', name: 'production-cluster', type: 'KUBERNETES_CLUSTER', labels: [] },
+                        { id: 'cluster-2', name: 'staging-cluster', type: 'KUBERNETES_CLUSTER', labels: [] },
+                    ],
+                    namespaces: [
+                        { metadata: { id: 'ns-1', name: 'frontend', labels: [], annotations: [] } },
+                        { metadata: { id: 'ns-2', name: 'backend', labels: [], annotations: [] } },
+                        { metadata: { id: 'ns-3', name: 'monitoring', labels: [], annotations: [] } },
+                    ],
+                    deployments: [
+                        { id: 'dep-1', name: 'web-frontend', type: 'Deployment', labels: [], annotations: [], namespace: 'frontend', clusterId: 'cluster-1', clusterName: 'production-cluster' },
+                        { id: 'dep-2', name: 'api-gateway', type: 'Deployment', labels: [], annotations: [], namespace: 'backend', clusterId: 'cluster-1', clusterName: 'production-cluster' },
+                    ],
+                },
+            });
+
         case 'getImageList':
         case 'getDeploymentList':
         case 'getNodeList':
@@ -287,9 +306,46 @@ export const handlers = [
     http.get('/v1/pods', () => HttpResponse.json({ pods: [] })),
     http.get('/v1/policies', () => HttpResponse.json({ policies: [] })),
 
-    // Collections
-    http.get('/v1/collections', () => HttpResponse.json({ collections: [] })),
-    http.get('/v2/collections', () => HttpResponse.json({ collections: [] })),
+    // Collections — non-empty so the Create Report wizard can select a scope
+    http.get('/v1/collections', () =>
+        HttpResponse.json({
+            collections: [
+                {
+                    id: 'col-1',
+                    name: 'All production workloads',
+                    description: 'Deployed images across all production namespaces',
+                    resourceSelectors: [],
+                    embeddedCollectionIds: [],
+                    createdAt: '2024-01-01T00:00:00Z',
+                    lastUpdated: '2024-01-01T00:00:00Z',
+                    action: 'APPEND',
+                },
+                {
+                    id: 'col-2',
+                    name: 'Staging and dev workloads',
+                    description: 'Non-production clusters for testing',
+                    resourceSelectors: [],
+                    embeddedCollectionIds: [],
+                    createdAt: '2024-01-01T00:00:00Z',
+                    lastUpdated: '2024-01-01T00:00:00Z',
+                    action: 'APPEND',
+                },
+                {
+                    id: 'col-3',
+                    name: 'Frontend services',
+                    description: 'Internet-facing application tier',
+                    resourceSelectors: [],
+                    embeddedCollectionIds: [],
+                    createdAt: '2024-01-01T00:00:00Z',
+                    lastUpdated: '2024-01-01T00:00:00Z',
+                    action: 'APPEND',
+                },
+            ],
+            totalCount: 3,
+        })
+    ),
+    http.get('/v1/collectionscount', () => HttpResponse.json({ count: 3 })),
+    http.get('/v2/collections', () => HttpResponse.json({ collections: [], totalCount: 0 })),
 
     // Vulnerability reports (REST)
     http.get('/v2/reports/configuration-count', () => HttpResponse.json({ count: 2 })),
@@ -309,9 +365,39 @@ export const handlers = [
     http.get('/v2/reports/view-based/my-history', () =>
         HttpResponse.json({ reportJobs: [], totalCount: 0 })
     ),
+    http.post('/v2/reports/configurations', async ({ request }) => {
+        const body = await request.clone().json();
+        return HttpResponse.json({
+            reportConfig: { ...body, id: `created-${Date.now()}` },
+        });
+    }),
+    http.put('/v2/reports/configurations/:id', async ({ request }) => {
+        const body = await request.clone().json();
+        return HttpResponse.json({ reportConfig: body });
+    }),
 
-    // Notifiers / integrations
-    http.get('/v1/notifiers', () => HttpResponse.json({ notifiers: [] })),
+    // Notifiers / integrations — provide a sample email notifier for the wizard
+    http.get('/v1/notifiers', () =>
+        HttpResponse.json({
+            notifiers: [
+                {
+                    id: 'notifier-1',
+                    name: 'Security email',
+                    type: 'email',
+                    labelDefault: 'security@example.com',
+                    labelKey: '',
+                    email: {
+                        server: 'smtp.example.com:587',
+                        sender: 'acs-reports@example.com',
+                        from: 'ACS Reports',
+                        username: '',
+                        disableTLS: false,
+                        startTLSAuthMethod: 'DISABLED',
+                    },
+                },
+            ],
+        })
+    ),
     http.get('/v1/integrations', () => HttpResponse.json({ integrations: {} })),
 
     // Exception / approval management

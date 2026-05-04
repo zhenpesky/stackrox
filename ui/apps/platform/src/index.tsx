@@ -68,7 +68,11 @@ setAnalyticsSource('standalone');
 const rootNode = document.getElementById('root');
 /* @ts-expect-error `createRoot` expects a non-null argument */
 const root = createRoot(rootNode);
-const history = createHistory();
+// When deployed to GitHub Pages at /prototype/, pass basename so React Router
+// reports paths as /main/... instead of /prototype/main/...
+const history = createHistory({
+    basename: import.meta.env.VITE_MOCK_MODE === 'true' ? '/prototype' : undefined,
+});
 const store = configureStore(undefined, history);
 const apolloClient = configureApollo();
 
