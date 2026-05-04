@@ -215,11 +215,17 @@ const graphqlHandler = graphql.link('/api/graphql').operation(async ({ query, va
 // ---------------------------------------------------------------------------
 
 export const handlers = [
-    // Auth
+    // Auth — return mock user so the auth saga dispatches login() instead of logout()
     http.get('/v1/auth/status', () => HttpResponse.json(MOCK_AUTH_STATUS)),
     http.get('/v1/authProviders', () => HttpResponse.json({ authProviders: [] })),
+    http.get('/v1/login/authproviders', () => HttpResponse.json({ authProviders: [] })),
     http.get('/v1/groups', () => HttpResponse.json({ groups: [] })),
     http.get('/v1/roles', () => HttpResponse.json({ roles: [] })),
+    http.get('/v1/mypermissions', () =>
+        HttpResponse.json({
+            resourceToAccess: MOCK_AUTH_STATUS.userInfo.permissions.resourceToAccess,
+        })
+    ),
 
     // Feature flags & metadata
     http.get('/v1/featureflags', () => HttpResponse.json({ featureFlags: [] })),

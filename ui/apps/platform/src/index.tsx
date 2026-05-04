@@ -9,6 +9,13 @@ import { Provider } from 'react-redux';
 // Start MSW before the app renders so all API calls from providers are intercepted
 async function enableMockMode() {
     if (import.meta.env.VITE_MOCK_MODE === 'true') {
+        // Pre-seed a mock access token so the auth saga skips the "no token → logout" branch
+        // and instead calls GET /v1/auth/status, which MSW intercepts and returns a mock user.
+        // The `store` v2 library serialises values as JSON, so we JSON-encode the string.
+        if (!localStorage.getItem('access_token')) {
+            localStorage.setItem('access_token', JSON.stringify('mock-prototype-token'));
+        }
+
         const { worker } = await import('./mocks/browser');
         return worker.start({
             serviceWorker: { url: `${import.meta.env.BASE_URL}mockServiceWorker.js` },
