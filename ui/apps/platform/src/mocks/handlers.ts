@@ -3,7 +3,7 @@
  * Used when VITE_MOCK_MODE=true (GitHub Pages deployment).
  * All API calls are intercepted so the app runs without a Central backend.
  */
-import { http, graphql, HttpResponse } from 'msw';
+import { http, HttpResponse } from 'msw';
 
 // ---------------------------------------------------------------------------
 // Startup / auth fixtures
@@ -176,10 +176,23 @@ const MOCK_REPORTS = [
 ];
 
 // ---------------------------------------------------------------------------
-// GraphQL handler — intercept by operation name
+// GraphQL handler — use http.post so it works regardless of URL query params.
+// The ACS app sends GraphQL as POST to /api/graphql?opname=<operationName>.
+// We read operationName from the request body (Apollo always includes it).
 // ---------------------------------------------------------------------------
 
-const graphqlHandler = graphql.link('/api/graphql').operation(async ({ query, variables, operationName }) => {
+async function parseOperationName(request: Request): Promise<string> {
+    try {
+        const body = await request.clone().json();
+        return body?.operationName ?? '';
+    } catch {
+        return '';
+    }
+}
+
+const graphqlHandler = http.post('/api/graphql', async ({ request }) => {
+    const operationName = await parseOperationName(request);
+
     switch (operationName) {
         case 'getImageCVEList':
             return HttpResponse.json({ data: { imageCVEs: MOCK_CVES } });
@@ -191,7 +204,7 @@ const graphqlHandler = graphql.link('/api/graphql').operation(async ({ query, va
         case 'getWorkloadCvesSummaryData':
             return HttpResponse.json({
                 data: {
-                    imageCVECount: 8,
+                    imageCVECount: MOCK_CVES.length,
                     imageCVEs: [],
                     imageCount: 42,
                 },
@@ -205,7 +218,6 @@ const graphqlHandler = graphql.link('/api/graphql').operation(async ({ query, va
             return HttpResponse.json({ data: { result: [] } });
 
         default:
-            // Return an empty data object for any unrecognized operation
             return HttpResponse.json({ data: {} });
     }
 });
