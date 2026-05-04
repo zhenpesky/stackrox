@@ -97,6 +97,7 @@
     "scripts": {
         "clean": "rm -rf ./test-results ./cypress/test-results",
         "start": "vite serve",
+        "start:rhacs-local-central": "ROX_PRODUCT_BRANDING=RHACS_BRANDING VITE_ROX_PRODUCT_BRANDING=RHACS_BRANDING PLATFORM_UI_DEV_PORT=3002 UI_START_TARGET=https://localhost:8443 vite serve",
         "start:ocp-plugin": "NODE_ENV=development webpack serve --config webpack.ocp-plugin.config.js",
         "build": "tsc && NODE_OPTIONS=--max_old_space_size=4096 vite build",
         "build:debug": "rm -rf node_modules/.vite && tsc && DEBUG=vite:* NODE_OPTIONS=--max_old_space_size=4096 vite build",
@@ -118,7 +119,8 @@
         "test-e2e-local:ocp": "TZ=UTC ./scripts/cypress-ocp.sh run",
         "test-component": "TZ=UTC CYPRESS_COMPONENT_TEST=true ./scripts/cypress-component.sh run --reporter mocha-multi-reporters --reporter-options configFile=cypress/mocha.config.js --component",
         "generate-graphql-possible-types": "ROX_AUTH_TOKEN=$(./scripts/get-auth-token.sh) node scripts/generate-graphql-possible-types.js",
-        "postinstall": "node scripts/check-optional-dependency-versions.js"
+        "postinstall": "node scripts/check-optional-dependency-versions.js",
+        "build:prototype": "ROX_PRODUCT_BRANDING=RHACS_BRANDING VITE_ROX_PRODUCT_BRANDING=RHACS_BRANDING VITE_MOCK_MODE=true NODE_OPTIONS=--max_old_space_size=4096 vite build"
     },
     "devDependencies": {
         "@eslint-community/eslint-plugin-eslint-comments": "^4.6.0",
@@ -165,6 +167,7 @@
         "levenary": "^1.1.1",
         "mocha-junit-reporter": "^2.2.0",
         "mocha-multi-reporters": "^1.5.1",
+        "msw": "^2.14.2",
         "node-fetch": "^2.6.1",
         "postcss": "^8.4.47",
         "postcss-cli": "^8.3.1",
@@ -208,5 +211,10 @@
     },
     "browserslist": [
         "Chrome >= 80"
-    ]
+    ],
+    "msw": {
+        "workerDirectory": [
+            "public"
+        ]
+    }
 }

@@ -84,12 +84,22 @@ function getCypressComponentTestAliases() {
 export default defineConfig(async () => {
     const sslOptions = getSslOptions();
 
+    // Allow a non-default port when HPUX Prototype Launcher (or another app) already uses 3000.
+    // Example: PLATFORM_UI_DEV_PORT=3002 UI_START_TARGET=https://localhost:8443 npm run start
+    const rawDevPort = process.env.PLATFORM_UI_DEV_PORT || process.env.PORT || '3000';
+    const parsedDevPort = Number.parseInt(String(rawDevPort), 10);
+    const devServerPort = Number.isFinite(parsedDevPort) && parsedDevPort > 0 ? parsedDevPort : 3000;
+
     const serverConfig = {
         proxy: viteProxy(),
         ...(sslOptions?.localHttpsConfig ?? {}),
     };
 
+    // When building for GitHub Pages (VITE_MOCK_MODE=true) the site is served under /prototype/.
+    const isMockBuild = process.env.VITE_MOCK_MODE === 'true';
+
     return {
+        base: isMockBuild ? '/prototype/' : '/',
         build: {
             assetsDir: './static',
             outDir: 'build',
@@ -126,11 +136,13 @@ export default defineConfig(async () => {
         plugins: [react(), svgr(), ...(sslOptions?.basicSsl ? [sslOptions.basicSsl()] : [])],
         preview: {
             ...serverConfig,
-            port: 3000,
+            port: devServerPort,
         },
         resolve: {
             alias: {
                 ...getSrcAliases(),
+                // Override auto-alias: `/src/vmPrototype` can fail import-analysis; use absolute path.
+                vmPrototype: path.resolve(__dirname, 'src/vmPrototype'),
                 // Mocks for Cypress component tests
                 // For example, the OpenShift Console SDK requires the Console environment to be present,
                 // which is not the case when running Cypress component tests.
@@ -139,7 +151,9 @@ export default defineConfig(async () => {
         },
         server: {
             ...serverConfig,
-            port: 3000,
+            // Listen on IPv4 + IPv6 so https://localhost:3000 and https://127.0.0.1:3000 both work
+            host: true,
+            port: devServerPort,
         },
         test: {
             dir: './src',

@@ -6,6 +6,18 @@
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 
+// Start MSW before the app renders so all API calls from providers are intercepted
+async function enableMockMode() {
+    if (import.meta.env.VITE_MOCK_MODE === 'true') {
+        const { worker } = await import('./mocks/browser');
+        return worker.start({
+            serviceWorker: { url: `${import.meta.env.BASE_URL}mockServiceWorker.js` },
+            onUnhandledRequest: 'bypass',
+        });
+    }
+    return Promise.resolve();
+}
+
 // We needed to backpedal to the react-router-v5-compat layer in order to be compatible with the console plugin API.
 // To reverse this change once the console plugin API is updated to support react-router-dom@v6 we need to:
 // 1. Remove the react-router-dom-v5-compat dependency and the <CompatRouter> wrapper below
@@ -58,28 +70,30 @@ const dispatch = (action) =>
         action as ThunkAction<void, unknown, unknown, AnyAction>
     );
 
-dispatch(fetchCentralCapabilitiesThunk());
+enableMockMode().then(() => {
+    dispatch(fetchCentralCapabilitiesThunk());
 
-root.render(
-    <Provider store={store}>
-        <ApolloProvider client={apolloClient}>
-            <ConnectedRouter history={history}>
-                <CompatRouter>
-                    <ErrorBoundary>
-                        <FeatureFlagsProvider>
-                            <ReduxUserPermissionProvider>
-                                <PublicConfigProvider>
-                                    <TelemetryConfigProvider>
-                                        <MetadataProvider>
-                                            <AppPage />
-                                        </MetadataProvider>
-                                    </TelemetryConfigProvider>
-                                </PublicConfigProvider>
-                            </ReduxUserPermissionProvider>
-                        </FeatureFlagsProvider>
-                    </ErrorBoundary>
-                </CompatRouter>
-            </ConnectedRouter>
-        </ApolloProvider>
-    </Provider>
-);
+    root.render(
+        <Provider store={store}>
+            <ApolloProvider client={apolloClient}>
+                <ConnectedRouter history={history}>
+                    <CompatRouter>
+                        <ErrorBoundary>
+                            <FeatureFlagsProvider>
+                                <ReduxUserPermissionProvider>
+                                    <PublicConfigProvider>
+                                        <TelemetryConfigProvider>
+                                            <MetadataProvider>
+                                                <AppPage />
+                                            </MetadataProvider>
+                                        </TelemetryConfigProvider>
+                                    </PublicConfigProvider>
+                                </ReduxUserPermissionProvider>
+                            </FeatureFlagsProvider>
+                        </ErrorBoundary>
+                    </CompatRouter>
+                </ConnectedRouter>
+            </ApolloProvider>
+        </Provider>
+    );
+});
