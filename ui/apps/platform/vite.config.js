@@ -95,11 +95,11 @@ export default defineConfig(async () => {
         ...(sslOptions?.localHttpsConfig ?? {}),
     };
 
-    // When building for GitHub Pages (VITE_MOCK_MODE=true) the site is served under /prototype/.
+    // When building for GitHub Pages (VITE_MOCK_MODE=true) the site is served under /rhacs-ux-prototypes/saved-filters/.
     const isMockBuild = process.env.VITE_MOCK_MODE === 'true';
 
     return {
-        base: isMockBuild ? '/prototype/' : '/',
+        base: isMockBuild ? '/rhacs-ux-prototypes/saved-filters/' : '/',
         build: {
             assetsDir: './static',
             outDir: 'build',
@@ -110,12 +110,17 @@ export default defineConfig(async () => {
                     manualChunks: {
                         d3: ['d3'],
                         lodash: ['lodash'],
-                        redoc: [
-                            'redoc',
-                            '@redocly/ajv',
-                            '@redocly/config',
-                            '@redocly/openapi-core',
-                        ],
+                        // Only bundle redoc in non-mock builds; mock builds alias it to an empty stub.
+                        ...(!isMockBuild
+                            ? {
+                                  redoc: [
+                                      'redoc',
+                                      '@redocly/ajv',
+                                      '@redocly/config',
+                                      '@redocly/openapi-core',
+                                  ],
+                              }
+                            : {}),
                         react: ['react', 'react-dom'],
                         apollo: ['@apollo/client'],
                     },
@@ -143,9 +148,12 @@ export default defineConfig(async () => {
                 ...getSrcAliases(),
                 // Override auto-alias: `/src/vmPrototype` can fail import-analysis; use absolute path.
                 vmPrototype: path.resolve(__dirname, 'src/vmPrototype'),
+                // In mock/prototype builds, replace the 1.3 MB redoc bundle with an empty stub.
+                // The API docs page is not reachable in mock mode.
+                ...(isMockBuild
+                    ? { redoc: path.resolve(__dirname, 'src/mocks/redoc-stub.ts') }
+                    : {}),
                 // Mocks for Cypress component tests
-                // For example, the OpenShift Console SDK requires the Console environment to be present,
-                // which is not the case when running Cypress component tests.
                 ...(process.env.CYPRESS_COMPONENT_TEST ? getCypressComponentTestAliases() : {}),
             },
         },

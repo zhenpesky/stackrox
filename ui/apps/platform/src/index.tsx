@@ -68,10 +68,10 @@ setAnalyticsSource('standalone');
 const rootNode = document.getElementById('root');
 /* @ts-expect-error `createRoot` expects a non-null argument */
 const root = createRoot(rootNode);
-// When deployed to GitHub Pages at /prototype/, pass basename so React Router
-// reports paths as /main/... instead of /prototype/main/...
+// When deployed to GitHub Pages at /rhacs-ux-prototypes/saved-filters/, pass basename so React Router
+// reports paths as /main/... instead of /rhacs-ux-prototypes/saved-filters/main/...
 const history = createHistory({
-    basename: import.meta.env.VITE_MOCK_MODE === 'true' ? '/prototype' : undefined,
+    basename: import.meta.env.VITE_MOCK_MODE === 'true' ? '/rhacs-ux-prototypes/saved-filters' : undefined,
 });
 const store = configureStore(undefined, history);
 const apolloClient = configureApollo();
