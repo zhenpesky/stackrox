@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom-v5-compat';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, matchPath, useLocation, useNavigate } from 'react-router-dom-v5-compat';
 import {
     Button,
     Content,
@@ -9,6 +9,7 @@ import {
     PageSection,
     Popover,
     Title,
+    ToolbarItem,
 } from '@patternfly/react-core';
 import { OutlinedQuestionCircleIcon } from '@patternfly/react-icons';
 import { gql, useApolloClient } from '@apollo/client';
@@ -35,6 +36,18 @@ import { useIsFirstRender } from 'hooks/useIsFirstRender';
 import { hideColumnIf } from 'hooks/useManagedColumns';
 import useURLSort from 'hooks/useURLSort';
 import type { VulnerabilityState } from 'types/cve.proto';
+import {
+    vulnerabilityConfigurationReportsPath,
+    vulnerabilitiesUserWorkloadsPath,
+} from 'routePaths';
+import { linkToWithVmPrototype } from 'vmPrototype/vmPrototypeSession';
+import { augmentWorkloadSearchFilterConfigForVmPrototypeV1CveTab } from 'vmPrototype/v1/augmentWorkloadSearchFilterConfigForVmPrototypeV1CveTab';
+import { useIsV1UserWorkloadPrototype } from 'vmPrototype/v1/V1UserWorkloadPrototypeContext';
+import { useV1WorkloadSavedFiltersControl } from 'vmPrototype/v1/useV1WorkloadSavedFiltersControl';
+import type { V1WorkloadSavedFilterScheduleMeta } from 'vmPrototype/v1/useV1WorkloadSavedFiltersControl';
+import { savedFilterSubsetEquals } from 'vmPrototype/v1/savedFilter5173Mapping';
+import { VM_PROTOTYPE_SCHEDULED_REPORT_PREFILL_KEY } from 'vmPrototype/v1/scheduledReportPrefill';
+import type { VmPrototypeScheduledReportPrefill } from 'vmPrototype/v1/scheduledReportPrefill';
 
 import {
     clusterSearchFilterConfig,
@@ -73,6 +86,11 @@ import CreateViewBasedReportModal from '../components/CreateViewBasedReportModal
 import { imageListQuery } from '../Tables/ImageOverviewTable';
 import useHasRequestExceptionsAbility from '../../hooks/useHasRequestExceptionsAbility';
 import VulnerabilitiesOverview from './VulnerabilitiesOverview';
+
+/** True when pathname is the User workloads vulnerability findings overview index (not a CVE/image/deployment child route). */
+function isUserWorkloadOverviewIndex(pathname: string): boolean {
+    return Boolean(matchPath({ path: vulnerabilitiesUserWorkloadsPath, end: true }, pathname));
+}
 
 export const entityTypeCountsQuery = gql`
     query getEntityTypeCounts($query: String) {
@@ -126,6 +144,9 @@ const defaultStorage: VulnMgmtLocalStorage = {
 
 function WorkloadCvesOverviewPage() {
     const apolloClient = useApolloClient();
+    const location = useLocation();
+    const navigate = useNavigate();
+    const isV1Prototype = useIsV1UserWorkloadPrototype();
 
     const { isFeatureFlagEnabled } = useFeatureFlags();
 
@@ -137,7 +158,7 @@ function WorkloadCvesOverviewPage() {
 
     const { analyticsTrack } = useAnalytics();
 
-    const { urlBuilder, pageTitle, pageTitleDescription, baseSearchFilter, viewContext } =
+    const { urlBuilder, pageTitle, pageTitleDescription, baseSearchFilter, viewContext, workloadCveViewId } =
         useWorkloadCveViewContext();
     const currentVulnerabilityState = useVulnerabilityState();
 
@@ -233,19 +254,26 @@ function WorkloadCvesOverviewPage() {
     function onVulnerabilityStateChange(vulnerabilityState: VulnerabilityState) {
         // Reset all filters, sorting, and pagination and apply to the current history entry
         setActiveEntityTabKey('CVE');
-        setSearchFilter({});
-        sort.setSortOption(getWorkloadCveOverviewDefaultSortOption('CVE'));
         pagination.setPage(1);
 
-        // Re-apply the default filters when changing to the "OBSERVED" state
+        // For OBSERVED, apply saved defaults directly. Avoid setSearchFilter({}) first — that runs
+        // syncSeveritySortOption with no severities and briefly expands severity multi-sort to the
+        // fallback (was all five tiers including Unknown in the URL).
         if (vulnerabilityState === 'OBSERVED') {
             applyDefaultFilters();
+            return;
         }
+
+        setSearchFilter({});
+        sort.setSortOption(getWorkloadCveOverviewDefaultSortOption('CVE'));
     }
 
-    function applyDefaultFilters() {
+    const applyDefaultFilters = useCallback(() => {
         setSearchFilter(localStorageValue.preferences.defaultFilters);
-    }
+    }, [localStorageValue.preferences.defaultFilters, setSearchFilter]);
+
+    /** Tracks pathname across navigations so we can re-apply saved defaults when returning via left nav with no `s` param (tier links only preserve vmPrototype). */
+    const prevPathForDefaultSyncRef = useRef<string | null>(null);
 
     // Track the current entity tab when the page is initially visited.
     /* eslint-disable react-hooks/exhaustive-deps */
@@ -256,20 +284,40 @@ function WorkloadCvesOverviewPage() {
     // onEntityTabChange
     /* eslint-enable react-hooks/exhaustive-deps */
 
-    // When the page is initially visited and no local filters are applied, apply the default filters.
-    //
-    // Note that this _does not_ take into account a direct navigation via the left navigation when the user
-    // is already on the page. This is because we do not distinguish between navigation via the
-    // sidebar and e.g. clearing the page filters.
-    /* eslint-disable react-hooks/exhaustive-deps */
+    // Persist saved default filters (Critical / Important / Fixable, etc.) into the URL when:
+    // - first visit with empty `s`, or
+    // - navigating back to this overview from another app route or from a child route (CVE/image/deployment)
+    //   while `s` is empty—e.g. sidebar "Results" only merges vmPrototype, not filter chips.
+    // We intentionally do not re-apply when the pathname stays this overview and the user cleared filters.
     useEffect(() => {
-        if (shouldSyncDefaultFilters) {
+        const prevPath = prevPathForDefaultSyncRef.current;
+        prevPathForDefaultSyncRef.current = location.pathname;
+
+        if (!isViewingWithCves || !isEmpty(urlSearchFilter)) {
+            return;
+        }
+
+        if (!isUserWorkloadOverviewIndex(location.pathname)) {
+            return;
+        }
+
+        const navigatedFromOutsideOverview =
+            prevPath !== null &&
+            prevPath !== location.pathname &&
+            !isUserWorkloadOverviewIndex(prevPath);
+
+        const firstVisitOverview = prevPath === null;
+
+        if (shouldSyncDefaultFilters || firstVisitOverview || navigatedFromOutsideOverview) {
             applyDefaultFilters();
         }
-    }, []);
-    // applyDefaultFilters
-    // shouldSyncDefaultFilters
-    /* eslint-enable react-hooks/exhaustive-deps */
+    }, [
+        applyDefaultFilters,
+        isViewingWithCves,
+        location.pathname,
+        shouldSyncDefaultFilters,
+        urlSearchFilter,
+    ]);
 
     const [defaultWatchedImageName, setDefaultWatchedImageName] = useState('');
     const watchedImagesModalToggle = useSelectToggle();
@@ -281,19 +329,16 @@ function WorkloadCvesOverviewPage() {
         return apolloClient.refetchQueries({ include: [imageListQuery] });
     }
 
-    // Keep searchFilterConfigWithFeatureFlagDependency for ROX_SCANNER_V4.
-    const searchFilterConfigWithFeatureFlagDependency = [
-        clusterSearchFilterConfig,
-        imageCVESearchFilterConfig,
-        deploymentSearchFilterConfig,
-        imageSearchFilterConfig,
-        imageComponentSearchFilterConfig,
-        namespaceSearchFilterConfig,
-    ];
-
-    const searchFilterConfig = getSearchFilterConfigWithFeatureFlagDependency(
-        isFeatureFlagEnabled,
-        searchFilterConfigWithFeatureFlagDependency
+    const searchFilterConfigDependency = useMemo(
+        () => [
+            clusterSearchFilterConfig,
+            imageCVESearchFilterConfig,
+            deploymentSearchFilterConfig,
+            imageSearchFilterConfig,
+            imageComponentSearchFilterConfig,
+            namespaceSearchFilterConfig,
+        ],
+        []
     );
 
     // Report-specific state management
@@ -305,6 +350,87 @@ function WorkloadCvesOverviewPage() {
             viewContext === 'Platform' ||
             viewContext === 'All vulnerable images' ||
             viewContext === 'Inactive images');
+
+    const v1SavedFilterWorkloadViews = [
+        'User workloads',
+        'Platform',
+        'All vulnerable images',
+    ] as const;
+    const v1WorkloadToolbarActive =
+        isV1Prototype &&
+        (v1SavedFilterWorkloadViews as readonly string[]).includes(viewContext) &&
+        isViewingWithCves;
+
+    /** v1 compound: Severity / Fixability under CVE entity; hide legacy standalone selects on every entity tab (CVE / Image / Deployment). */
+    const v1VmPrototypeCompoundToolbarBase =
+        isV1Prototype &&
+        isViewingWithCves &&
+        (viewContext === 'User workloads' ||
+            viewContext === 'Platform' ||
+            viewContext === 'All vulnerable images');
+
+    // Augment the compound filter config with Severity / Fixability on all tabs (not just CVE)
+    // so that filter chips and the saved-filter selection remain visible when switching tabs.
+    const v1CveTabCompoundSeverityStatus = v1VmPrototypeCompoundToolbarBase;
+
+    const searchFilterConfig = useMemo(() => {
+        const base = getSearchFilterConfigWithFeatureFlagDependency(
+            isFeatureFlagEnabled,
+            searchFilterConfigDependency
+        );
+        if (!v1CveTabCompoundSeverityStatus) {
+            return base;
+        }
+        return augmentWorkloadSearchFilterConfigForVmPrototypeV1CveTab(base);
+    }, [isFeatureFlagEnabled, searchFilterConfigDependency, v1CveTabCompoundSeverityStatus]);
+
+    const [v1ScheduleMeta, setV1ScheduleMeta] = useState<V1WorkloadSavedFilterScheduleMeta>({
+        selectedSavedName: null,
+        baselineSearchFilter: null,
+    });
+
+    const v1SavedFilterUi = useV1WorkloadSavedFiltersControl({
+        enabled: v1WorkloadToolbarActive,
+        searchFilter,
+        setSearchFilter,
+        paginationSetPage: () => pagination.setPage(1),
+        storageScope: `workload-vuln-${workloadCveViewId}`,
+        filterKind: 'workload',
+        onScheduleMetaChange: setV1ScheduleMeta,
+    });
+
+    const openScheduledReportFromWorkload = useCallback(() => {
+        const filtersModified = Boolean(
+            v1ScheduleMeta.selectedSavedName &&
+            v1ScheduleMeta.baselineSearchFilter &&
+            !savedFilterSubsetEquals(searchFilter, v1ScheduleMeta.baselineSearchFilter)
+        );
+        const prefill: VmPrototypeScheduledReportPrefill = {
+            workloadScopedQueryString: workloadCvesScopedQueryString,
+            searchFilterForForm: { ...searchFilter },
+            savedFilterName:
+                !filtersModified && v1ScheduleMeta.selectedSavedName
+                    ? v1ScheduleMeta.selectedSavedName
+                    : null,
+            filtersModified,
+        };
+        navigate(
+            linkToWithVmPrototype(
+                `${vulnerabilityConfigurationReportsPath}?action=create`,
+                location.search
+            ),
+            {
+                state: { [VM_PROTOTYPE_SCHEDULED_REPORT_PREFILL_KEY]: prefill },
+            }
+        );
+    }, [
+        location.search,
+        navigate,
+        searchFilter,
+        v1ScheduleMeta.baselineSearchFilter,
+        v1ScheduleMeta.selectedSavedName,
+        workloadCvesScopedQueryString,
+    ]);
 
     const hasRequestExceptionsAbility = useHasRequestExceptionsAbility();
     const showDeferralUI = hasRequestExceptionsAbility && currentVulnerabilityState === 'OBSERVED';
@@ -393,13 +519,25 @@ function WorkloadCvesOverviewPage() {
                     }}
                     onEntityTabChange={onEntityTabChange}
                     activeEntityTabKey={activeEntityTabKey}
+                    prefixToolbarItems={v1SavedFilterUi.prefixToolbarItem ?? undefined}
+                    appliedFilterToolbarSuffix={v1SavedFilterUi.appliedFilterSuffix ?? undefined}
+                    includeCveSeverityFilters={isViewingWithCves && !v1VmPrototypeCompoundToolbarBase}
+                    includeCveStatusFilters={isViewingWithCves && !v1VmPrototypeCompoundToolbarBase}
                     additionalToolbarItems={
                         isViewBasedReportsEnabled && (
-                            <CreateReportDropdown
-                                onSelect={() => {
-                                    setIsCreateViewBasedReportModalOpen(true);
-                                }}
-                            />
+                            <ToolbarItem>
+                                <CreateReportDropdown
+                                    onSelect={() => {
+                                        setIsCreateViewBasedReportModalOpen(true);
+                                    }}
+                                    showScheduleReport={v1WorkloadToolbarActive}
+                                    onScheduleReport={
+                                        v1WorkloadToolbarActive
+                                            ? openScheduledReportFromWorkload
+                                            : undefined
+                                    }
+                                />
+                            </ToolbarItem>
                         )
                     }
                     additionalHeaderItems={
@@ -418,6 +556,7 @@ function WorkloadCvesOverviewPage() {
                                         <Flex
                                             direction={{ default: 'row' }}
                                             alignItems={{ default: 'alignItemsCenter' }}
+                                            spaceItems={{ default: 'spaceItemsMd' }}
                                         >
                                             {hasReadAccessForNamespaces && (
                                                 <Link
@@ -457,6 +596,7 @@ function WorkloadCvesOverviewPage() {
                         cvesBySeverity: hideColumnIf(!isViewingWithCves),
                     }}
                 />
+                {v1SavedFilterUi.modalsFragment}
                 <WatchedImagesModal
                     defaultWatchedImageName={defaultWatchedImageName}
                     isOpen={watchedImagesModalToggle.isOpen}
