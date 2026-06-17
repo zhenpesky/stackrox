@@ -223,38 +223,6 @@ const V5_IMAGE_SUB_AREAS = (
     linkTo: `${vulnerabilityConfigurationReportsPath}?vulnReportArea=${view}&prototype=v5`,
 }));
 
-/** Label + description for a v5 table card header (not under the breadcrumb). */
-function getV5ViewMeta(
-    group: string,
-    area: string,
-    activeSubnav: VulnWorkflowView
-): { label: string; description: string } {
-    if (area && area in VULN_WORKFLOW_VIEW_META) {
-        const meta = VULN_WORKFLOW_VIEW_META[area as VulnWorkflowView];
-        return { label: meta.label, description: meta.description };
-    }
-    if (group === 'image') {
-        return {
-            label: V4_AREA_TABS[0].label,
-            description: V4_AREA_TABS[0].description,
-        };
-    }
-    if (activeSubnav === 'node-cves') {
-        return {
-            label: VULN_WORKFLOW_VIEW_META['node-cves'].label,
-            description: VULN_WORKFLOW_VIEW_META['node-cves'].description,
-        };
-    }
-    if (activeSubnav === 'virtual-machines') {
-        return {
-            label: VULN_WORKFLOW_VIEW_META['virtual-machines'].label,
-            description: VULN_WORKFLOW_VIEW_META['virtual-machines'].description,
-        };
-    }
-    const meta = VULN_WORKFLOW_VIEW_META[activeSubnav];
-    return { label: meta.label, description: meta.description };
-}
-
 /** Contextual description for the v6/v7 report-config header row. */
 function getV6V7Description(
     v6Filter: VulnWorkflowView[],
@@ -576,9 +544,6 @@ function ConfigReportsTab() {
     }
 
     const numSuccessfulDeletions = deleteResults?.filter(isSuccessDeleteResult).length || 0;
-    const v5TableMeta = isV5TableView
-        ? getV5ViewMeta(vulnReportGroupParam, vulnReportAreaParam, activeSubnav)
-        : null;
     const v6V7Description = isV7Mode
         ? getV6V7Description([], v7ToggleGroup)
         : isV6Mode
@@ -936,29 +901,6 @@ function ConfigReportsTab() {
             )}
             {!showV5Landing && (
                 <PageSection>
-                    {isV5TableView && v5TableMeta && (
-                        <Card isCompact className="pf-v6-u-mb-md">
-                            <CardHeader>
-                                <Flex
-                                    direction={{ default: 'column' }}
-                                    spaceItems={{ default: 'spaceItemsSm' }}
-                                >
-                                    <Content component={ContentVariants.p} style={{ fontWeight: 600 }}>
-                                        {v5TableMeta.label}
-                                    </Content>
-                                    <Content
-                                        component={ContentVariants.p}
-                                        style={{
-                                            color: 'var(--pf-t--global--text--color--subtle)',
-                                            fontSize: '13px',
-                                        }}
-                                    >
-                                        {v5TableMeta.description}
-                                    </Content>
-                                </Flex>
-                            </CardHeader>
-                        </Card>
-                    )}
                 <Toolbar>
                     <ToolbarContent>
                         {/* V5 image group: area-of-concern pre-filter (before search) */}
