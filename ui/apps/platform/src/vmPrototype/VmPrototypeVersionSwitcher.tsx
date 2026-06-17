@@ -404,7 +404,6 @@ function VmPrototypeVersionSwitcher(): ReactElement | null {
 
             {isOpen && (
                 <div
-                    role="listbox"
                     style={{
                         position: 'absolute',
                         top: 'calc(100% + 4px)',
@@ -416,182 +415,200 @@ function VmPrototypeVersionSwitcher(): ReactElement | null {
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         minWidth: '280px',
                         maxHeight: '80vh',
-                        overflowY: 'auto',
-                        overflowX: 'hidden',
-                        padding: '4px 0',
-                        overscrollBehavior: 'contain',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
                     }}
                 >
-                    {options.map(({ protoValue, label, description, active, Icon, iconColor, lastEdited }) => (
-                        <button
-                            key={label}
-                            type="button"
-                            role="option"
-                            aria-selected={active}
-                            onClick={() => !active && handleSelect(protoValue)}
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '10px',
-                                width: '100%',
-                                textAlign: 'left',
-                                background: active ? '#f3faf2' : 'transparent',
-                                border: 'none',
-                                borderLeft: active ? '3px solid #3e8635' : '3px solid transparent',
-                                padding: '8px 16px 8px 13px',
-                                cursor: active ? 'default' : 'pointer',
-                                fontFamily: 'inherit',
-                            }}
-                        >
-                            <Icon style={{ fontSize: '16px', color: iconColor, flexShrink: 0 }} />
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '14px', color: '#151515', fontWeight: active ? 600 : 400 }}>
-                                    {label}
-                                </div>
-                                <div style={{ fontSize: '12px', color: '#6a6e73', marginTop: '2px' }}>
-                                    {description}
-                                </div>
-                                {lastEdited && (
-                                    <div
-                                        style={{
-                                            fontSize: '11px',
-                                            color: '#969696',
-                                            marginTop: '4px',
-                                        }}
-                                    >
-                                        {lastEdited}
-                                    </div>
-                                )}
-                            </div>
-                            {active && (
-                                <CheckIcon style={{ fontSize: '14px', color: '#3e8635', flexShrink: 0 }} />
-                            )}
-                        </button>
-                    ))}
-                    <div style={{ borderTop: '1px solid #e8e8e8', margin: '4px 0' }} />
-                    <a
-                        href="https://zhenpesky.github.io/rhacs-ux-prototypes"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => setIsOpen(false)}
+                    <div
+                        role="listbox"
                         style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            width: '100%',
-                            textAlign: 'left',
-                            background: 'transparent',
-                            border: 'none',
-                            padding: '8px 16px',
-                            cursor: 'pointer',
-                            fontFamily: 'inherit',
-                            textDecoration: 'none',
-                            color: '#0066cc',
-                            fontSize: '13px',
-                            fontWeight: 500,
-                            boxSizing: 'border-box',
+                            flex: '1 1 auto',
+                            minHeight: 0,
+                            overflowY: 'auto',
+                            overflowX: 'hidden',
+                            padding: '4px 0',
+                            overscrollBehavior: 'contain',
                         }}
                     >
-                        <svg
-                            aria-hidden="true"
-                            viewBox="0 0 24 24"
-                            style={{ width: '13px', height: '13px', fill: 'currentColor', flexShrink: 0 }}
-                        >
-                            <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                        </svg>
-                        View all in dashboard
-                        <ExternalLinkAltIcon style={{ fontSize: '11px', marginLeft: '2px' }} />
-                    </a>
-                    {isOnPrototype && (
-                        <>
-                            <div style={{ borderTop: '1px solid #e8e8e8', margin: '4px 0' }} />
+                        {options.map(({ protoValue, label, description, active, Icon, iconColor, lastEdited }) => (
                             <button
+                                key={label}
                                 type="button"
-                                onClick={() => { setShowShareCard((v) => !v); setCopied(false); }}
+                                role="option"
+                                aria-selected={active}
+                                onClick={() => !active && handleSelect(protoValue)}
                                 style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '6px',
+                                    gap: '10px',
                                     width: '100%',
                                     textAlign: 'left',
-                                    background: 'transparent',
+                                    background: active ? '#f3faf2' : 'transparent',
                                     border: 'none',
-                                    padding: '8px 16px',
-                                    cursor: 'pointer',
+                                    borderLeft: active ? '3px solid #3e8635' : '3px solid transparent',
+                                    padding: '8px 16px 8px 13px',
+                                    cursor: active ? 'default' : 'pointer',
                                     fontFamily: 'inherit',
-                                    color: '#0066cc',
-                                    fontSize: '13px',
-                                    fontWeight: 500,
                                 }}
                             >
-                                <LinkIcon style={{ fontSize: '13px', flexShrink: 0 }} />
-                                Share this prototype
-                            </button>
-                            {showShareCard && (
-                                <div style={{ padding: '8px 16px 12px', borderTop: '1px solid #e8e8e8' }}>
-                                    <div style={{ fontSize: '12px', color: '#6a6e73', marginBottom: '8px' }}>
-                                        Choose link access level:
+                                <Icon style={{ fontSize: '16px', color: iconColor, flexShrink: 0 }} />
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '14px', color: '#151515', fontWeight: active ? 600 : 400 }}>
+                                        {label}
                                     </div>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', marginBottom: '4px' }}>
-                                        <input
-                                            type="radio"
-                                            name="share-access"
-                                            checked={shareGuestOnly}
-                                            onChange={() => { setShareGuestOnly(true); setCopied(false); }}
-                                        />
-                                        Guest only
-                                        <span style={{ fontSize: '11px', color: '#3e8635', fontWeight: 500 }}>(recommended)</span>
-                                    </label>
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', marginBottom: '10px' }}>
-                                        <input
-                                            type="radio"
-                                            name="share-access"
-                                            checked={!shareGuestOnly}
-                                            onChange={() => { setShareGuestOnly(false); setCopied(false); }}
-                                        />
-                                        Internal stakeholder only
-                                    </label>
-                                    <div style={{ display: 'flex', gap: '6px' }}>
-                                        <input
-                                            readOnly
-                                            value={buildShareUrl(shareGuestOnly)}
+                                    <div style={{ fontSize: '12px', color: '#6a6e73', marginTop: '2px' }}>
+                                        {description}
+                                    </div>
+                                    {lastEdited && (
+                                        <div
                                             style={{
-                                                flex: 1,
-                                                fontSize: '12px',
-                                                padding: '4px 8px',
-                                                border: '1px solid #d2d2d2',
-                                                borderRadius: '3px',
-                                                background: '#f5f5f5',
-                                                color: '#151515',
-                                                fontFamily: 'monospace',
-                                                minWidth: 0,
-                                            }}
-                                            onFocus={(e) => e.target.select()}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={handleCopy}
-                                            style={{
-                                                padding: '4px 12px',
-                                                fontSize: '12px',
-                                                border: '1px solid #0066cc',
-                                                borderRadius: '3px',
-                                                background: copied ? '#3e8635' : '#0066cc',
-                                                color: '#fff',
-                                                cursor: 'pointer',
-                                                fontFamily: 'inherit',
-                                                whiteSpace: 'nowrap',
-                                                minWidth: '76px',
-                                                transition: 'background 0.15s',
+                                                fontSize: '11px',
+                                                color: '#969696',
+                                                marginTop: '4px',
                                             }}
                                         >
-                                            {copied ? 'Copied!' : 'Copy link'}
-                                        </button>
-                                    </div>
+                                            {lastEdited}
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </>
-                    )}
+                                {active && (
+                                    <CheckIcon style={{ fontSize: '14px', color: '#3e8635', flexShrink: 0 }} />
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                    <div
+                        style={{
+                            flexShrink: 0,
+                            borderTop: '1px solid #e8e8e8',
+                            background: '#fff',
+                        }}
+                    >
+                        <a
+                            href="https://zhenpesky.github.io/rhacs-ux-prototypes"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setIsOpen(false)}
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                width: '100%',
+                                textAlign: 'left',
+                                background: 'transparent',
+                                border: 'none',
+                                padding: '8px 16px',
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                                textDecoration: 'none',
+                                color: '#0066cc',
+                                fontSize: '13px',
+                                fontWeight: 500,
+                                boxSizing: 'border-box',
+                            }}
+                        >
+                            <svg
+                                aria-hidden="true"
+                                viewBox="0 0 24 24"
+                                style={{ width: '13px', height: '13px', fill: 'currentColor', flexShrink: 0 }}
+                            >
+                                <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+                            </svg>
+                            View all in dashboard
+                            <ExternalLinkAltIcon style={{ fontSize: '11px', marginLeft: '2px' }} />
+                        </a>
+                        {isOnPrototype && (
+                            <>
+                                <div style={{ borderTop: '1px solid #e8e8e8' }} />
+                                <button
+                                    type="button"
+                                    onClick={() => { setShowShareCard((v) => !v); setCopied(false); }}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '6px',
+                                        width: '100%',
+                                        textAlign: 'left',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        padding: '8px 16px',
+                                        cursor: 'pointer',
+                                        fontFamily: 'inherit',
+                                        color: '#0066cc',
+                                        fontSize: '13px',
+                                        fontWeight: 500,
+                                    }}
+                                >
+                                    <LinkIcon style={{ fontSize: '13px', flexShrink: 0 }} />
+                                    Share this prototype
+                                </button>
+                                {showShareCard && (
+                                    <div style={{ padding: '8px 16px 12px', borderTop: '1px solid #e8e8e8' }}>
+                                        <div style={{ fontSize: '12px', color: '#6a6e73', marginBottom: '8px' }}>
+                                            Choose link access level:
+                                        </div>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', marginBottom: '4px' }}>
+                                            <input
+                                                type="radio"
+                                                name="share-access"
+                                                checked={shareGuestOnly}
+                                                onChange={() => { setShareGuestOnly(true); setCopied(false); }}
+                                            />
+                                            Guest only
+                                            <span style={{ fontSize: '11px', color: '#3e8635', fontWeight: 500 }}>(recommended)</span>
+                                        </label>
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', marginBottom: '10px' }}>
+                                            <input
+                                                type="radio"
+                                                name="share-access"
+                                                checked={!shareGuestOnly}
+                                                onChange={() => { setShareGuestOnly(false); setCopied(false); }}
+                                            />
+                                            Internal stakeholder only
+                                        </label>
+                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                            <input
+                                                readOnly
+                                                value={buildShareUrl(shareGuestOnly)}
+                                                style={{
+                                                    flex: 1,
+                                                    fontSize: '12px',
+                                                    padding: '4px 8px',
+                                                    border: '1px solid #d2d2d2',
+                                                    borderRadius: '3px',
+                                                    background: '#f5f5f5',
+                                                    color: '#151515',
+                                                    fontFamily: 'monospace',
+                                                    minWidth: 0,
+                                                }}
+                                                onFocus={(e) => e.target.select()}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={handleCopy}
+                                                style={{
+                                                    padding: '4px 12px',
+                                                    fontSize: '12px',
+                                                    border: '1px solid #0066cc',
+                                                    borderRadius: '3px',
+                                                    background: copied ? '#3e8635' : '#0066cc',
+                                                    color: '#fff',
+                                                    cursor: 'pointer',
+                                                    fontFamily: 'inherit',
+                                                    whiteSpace: 'nowrap',
+                                                    minWidth: '76px',
+                                                    transition: 'background 0.15s',
+                                                }}
+                                            >
+                                                {copied ? 'Copied!' : 'Copy link'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </div>
             )}
         </div>
