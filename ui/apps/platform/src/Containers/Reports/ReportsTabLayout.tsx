@@ -22,7 +22,6 @@ import {
     reportsBasePath,
     riskBasePath,
     violationsFullViewPath,
-    violationsUserWorkloadsViewPath,
     vulnerabilityConfigurationReportsPath,
 } from 'routePaths';
 import {
@@ -94,39 +93,19 @@ const AREAS_BY_TYPE: Record<UniversalReportSourceType, AreaItem[]> = {
     ],
     violation: [
         {
-            id: 'user-workloads',
-            label: 'User workloads',
+            id: 'policy-violation-reports',
+            label: 'Policy violation reports',
             description:
-                'Policy violations scoped to deployed workload images across namespaces and clusters.',
-            linkTo: violationsUserWorkloadsViewPath,
-        },
-        {
-            id: 'all-violations',
-            label: 'All violations',
-            description:
-                'Full-scope policy violations across workloads, platform components, and nodes.',
+                'Policy violation reports scoped to deployed workload images and full-scope violations across workloads, platform components, and nodes.',
             linkTo: violationsFullViewPath,
         },
     ],
     compliance: [
         {
-            id: 'openshift-cis',
-            label: 'OpenShift CIS',
+            id: 'compliance-reports',
+            label: 'Compliance reports',
             description:
-                'Compliance posture against the CIS OpenShift Benchmark across clusters and namespaces.',
-            linkTo: complianceEnhancedSchedulesPath,
-        },
-        {
-            id: 'kubernetes-cis',
-            label: 'Kubernetes CIS',
-            description:
-                'Compliance posture against the CIS Kubernetes Benchmark across clusters and namespaces.',
-            linkTo: complianceEnhancedSchedulesPath,
-        },
-        {
-            id: 'nist-800-190',
-            label: 'NIST 800-190',
-            description: 'Application container security controls per NIST SP 800-190 guidance.',
+                'Compliance reports scoped to OpenShift CIS, Kubernetes CIS, and NIST 800-190 standards across your clusters.',
             linkTo: complianceEnhancedSchedulesPath,
         },
     ],
@@ -146,9 +125,9 @@ const AREAS_BY_TYPE: Record<UniversalReportSourceType, AreaItem[]> = {
     risk: [
         {
             id: 'deployment-risk',
-            label: 'Deployment risk',
+            label: 'Deployment risk reports',
             description:
-                'Risk scores and contributing factors for every deployment across your environment.',
+                'Risk reports scoped to deployment risk scores and contributing factors across your environment.',
             linkTo: riskBasePath,
         },
     ],

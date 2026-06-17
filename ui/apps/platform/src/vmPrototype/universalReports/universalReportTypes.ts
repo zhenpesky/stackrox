@@ -31,14 +31,16 @@ export const UNIVERSAL_REPORT_SOURCE_META: Record<
     },
     violation: {
         label: 'Violation report',
-        description: 'Policy violations across workloads, platform, and nodes. Select an area of concern below.',
+        description:
+            'Policy violation reports scoped to deployed workload images and full-scope violations across workloads, platform components, and nodes. Select an area of concern below.',
         scopeSummary: 'Cluster, deployment, namespace, node, and resource compound filters',
         parametersSummary: 'Policy category, severity, lifecycle, and violation time filters',
         labelColor: 'purple',
     },
     compliance: {
         label: 'Compliance report',
-        description: 'OpenShift and Kubernetes compliance controls by standard and cluster scope.',
+        description:
+            'Compliance reports scoped to OpenShift CIS, Kubernetes CIS, and NIST 800-190 standards across clusters and namespaces. Select an area of concern below.',
         scopeSummary: 'Clusters and compliance profiles (scan schedule wizard)',
         parametersSummary: 'Schedule, scan name, and email delivery (scan schedule wizard)',
         labelColor: 'green',
@@ -54,7 +56,7 @@ export const UNIVERSAL_REPORT_SOURCE_META: Record<
     risk: {
         label: 'Risk report',
         description:
-            'Deployment risk scores and risk factors across your environment.',
+            'Risk reports scoped to deployment risk scores and contributing factors across your environment. Select an area of concern below.',
         scopeSummary: 'Cluster, namespace, and deployment scope filters',
         parametersSummary: 'Risk category and score threshold filters',
         labelColor: 'orange',
